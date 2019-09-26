@@ -1,21 +1,26 @@
 /* See LICENSE file for copyright and license details. */
 
+/* define hotkeys */
+#define XFAU   0x1008ff13      /* XF86AudioRaiseVolume */
+#define XFAD   0x1008ff11      /* XF86AudioLowerVolume */
+#define XFAM   0x1008ff12      /* XF86AudioMute */
+#define XFLU   0x1008ff02      /* XF86MonBrightnessUp */
+#define XFLD   0x1008ff03      /* XF86MonBrightnessDown */
+
 /* appearance */
-static const unsigned int borderpx  = 1;        /* border pixel of windows */
-static const unsigned int snap      = 32;       /* snap pixel */
+static const unsigned int borderpx  = 4;        /* border pixel of windows */
+static const unsigned int snap      = 16;       /* snap pixel */
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
-static const char *fonts[]          = { "monospace:size=10" };
-static const char dmenufont[]       = "monospace:size=10";
-static const char col_gray1[]       = "#222222";
-static const char col_gray2[]       = "#444444";
-static const char col_gray3[]       = "#bbbbbb";
-static const char col_gray4[]       = "#eeeeee";
-static const char col_cyan[]        = "#005577";
+static const char *fonts[]          = { "Iosevka:size=10" };
+static const char dmenufont[]       = "Iosevka:size=10";
+static const char col_dark[]        = "#282a36";
+static const char col_light[]       = "#f8f8f2";
+static const char col_accent[]      = "#bd9ef9";
 static const char *colors[][3]      = {
 	/*               fg         bg         border   */
-	[SchemeNorm] = { col_gray3, col_gray1, col_gray2 },
-	[SchemeSel]  = { col_gray4, col_cyan,  col_cyan  },
+        [SchemeNorm] = { col_light, col_dark,  col_dark },
+        [SchemeSel]  = { col_dark,  col_accent,col_accent  },
 };
 
 /* tagging */
@@ -28,23 +33,23 @@ static const Rule rules[] = {
 	 */
 	/* class      instance    title       tags mask     isfloating   monitor */
 	{ "Gimp",     NULL,       NULL,       0,            1,           -1 },
-	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           -1 },
+	{ "Emacs",    NULL,       NULL,       1 << 8,       0,           -1 },
 };
 
 /* layout(s) */
-static const float mfact     = 0.55; /* factor of master area size [0.05..0.95] */
+static const float mfact     = 0.65; /* factor of master area size [0.05..0.95] */
 static const int nmaster     = 1;    /* number of clients in master area */
-static const int resizehints = 1;    /* 1 means respect size hints in tiled resizals */
+static const int resizehints = 0;    /* 1 means respect size hints in tiled resizals */
 
 static const Layout layouts[] = {
 	/* symbol     arrange function */
-	{ "[]=",      tile },    /* first entry is default */
-	{ "><>",      NULL },    /* no layout function means floating behavior */
-	{ "[M]",      monocle },
+	{ "[▍]",      tile },    /* first entry is default */
+	{ "[ ]",      NULL },    /* no layout function means floating behavior */
+	{ "[▉]",      monocle },
 };
 
 /* key definitions */
-#define MODKEY Mod1Mask
+#define MODKEY Mod4Mask
 #define TAGKEYS(KEY,TAG) \
 	{ MODKEY,                       KEY,      view,           {.ui = 1 << TAG} }, \
 	{ MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} }, \
@@ -56,20 +61,34 @@ static const Layout layouts[] = {
 
 /* commands */
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
-static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", col_gray1, "-nf", col_gray3, "-sb", col_cyan, "-sf", col_gray4, NULL };
-static const char *termcmd[]  = { "st", NULL };
+static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", col_dark, "-nf", col_light, "-sb", col_accent, "-sf", col_dark, NULL };
+static const char *termcmd[]  = { "st", "-e", "tmux", NULL };
+static const char *webcmd[] = { "firefox", NULL };
+static const char scratchpadname[] = "scratchpad";
+static const char *scratchpadcmd[] = { "st", "-t", scratchpadname, "-g", "120x34", "-e", "tmux", NULL };
+static const char *vold[] = { "amixer", "sset", "master", "1%-", NULL };
+static const char *volu[] = { "amixer", "sset", "master", "1%+", NULL };
+static const char *volm[] = { "amixer", "sset", "master", "toggle", NULL };
 
+#include "movestack.c"
 static Key keys[] = {
 	/* modifier                     key        function        argument */
-	{ MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
-	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
+	{ MODKEY|ShiftMask,             XK_p,      spawn,          {.v = dmenucmd } },
+	{ MODKEY,                       XK_Return, spawn,          {.v = termcmd } },
+	{ MODKEY|ShiftMask,             XK_w,      spawn,          {.v = webcmd } },
+	{ MODKEY,                       XK_minus,  togglescratch,  {.v = scratchpadcmd } },
+	{ 0,                            XKAD,      spawn,          {.v = vold } },
+	{ 0,                            XKAU,      spawn,          {.v = volu } },
+	{ 0,                            XKAM,      spawn,          {.v = volm } },
 	{ MODKEY,                       XK_b,      togglebar,      {0} },
 	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
 	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
 	{ MODKEY,                       XK_i,      incnmaster,     {.i = +1 } },
 	{ MODKEY,                       XK_d,      incnmaster,     {.i = -1 } },
-	{ MODKEY,                       XK_h,      setmfact,       {.f = -0.05} },
-	{ MODKEY,                       XK_l,      setmfact,       {.f = +0.05} },
+	{ MODKEY,                       XK_h,      setmfact,       {.f = -0.01} },
+	{ MODKEY,                       XK_l,      setmfact,       {.f = +0.01} },
+	{ MODKEY|ShiftMask,             XK_j,      movestack,      {.i = +1 } },
+	{ MODKEY|ShiftMask,             XK_k,      movestack,      {.i = -1 } },
 	{ MODKEY,                       XK_Return, zoom,           {0} },
 	{ MODKEY,                       XK_Tab,    view,           {0} },
 	{ MODKEY|ShiftMask,             XK_c,      killclient,     {0} },
@@ -93,7 +112,7 @@ static Key keys[] = {
 	TAGKEYS(                        XK_7,                      6)
 	TAGKEYS(                        XK_8,                      7)
 	TAGKEYS(                        XK_9,                      8)
-	{ MODKEY|ShiftMask,             XK_q,      quit,           {0} },
+	{ MODKEY|ShiftMask,             XK_Escape,      quit,           {0} },
 };
 
 /* button definitions */
